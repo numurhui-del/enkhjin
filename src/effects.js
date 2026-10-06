@@ -2,23 +2,62 @@ import * as THREE from 'three';
 
 // Canvas дээр зурсан жижиг texture-ууд (зураг файл шаардлагагүй)
 
-let glowTexture = null;
 let heartTexture = null;
 
-export function getGlowTexture() {
-  if (glowTexture) return glowTexture;
-  const c = document.createElement('canvas');
-  c.width = c.height = 64;
-  const g = c.getContext('2d');
-  const grad = g.createRadialGradient(32, 32, 0, 32, 32, 32);
-  grad.addColorStop(0, 'rgba(255,255,255,1)');
-  grad.addColorStop(0.25, 'rgba(255,255,255,0.55)');
-  grad.addColorStop(1, 'rgba(255,255,255,0)');
-  g.fillStyle = grad;
-  g.fillRect(0, 0, 64, 64);
-  glowTexture = new THREE.CanvasTexture(c);
-  glowTexture.colorSpace = THREE.SRGBColorSpace;
-  return glowTexture;
+// Гэрэлтэх эффект (дэнлүү, сар, лаа). Зураг (texture) ашиглахгүй, shader-ээр
+// шууд тооцоолж зурна. Safari дээр зургийн гэрэлтэлт өнгөт дугуй үүсгэдэг
+// асуудлыг ингэж арилгасан. Үргэлж camera руу харна (billboard).
+const GLOW_VERT = /* glsl */ `
+varying vec2 vUv;
+void main() {
+  vUv = uv;
+  vec4 mv = modelViewMatrix * vec4(0.0, 0.0, 0.0, 1.0);
+  vec2 scale = vec2(length(modelMatrix[0].xyz), length(modelMatrix[1].xyz));
+  mv.xy += position.xy * scale;
+  gl_Position = projectionMatrix * mv;
+}`;
+
+const GLOW_FRAG = /* glsl */ `
+uniform vec3 uColor;
+uniform float uOpacity;
+varying vec2 vUv;
+float rand(vec2 c) { return fract(sin(dot(c, vec2(12.9898, 78.233))) * 43758.5453); }
+void main() {
+  float d = length(vUv - 0.5) * 2.0;
+  float a = clamp(1.0 - d, 0.0, 1.0);
+  a = a * a * (0.6 + 0.4 * a);
+  // жигд бус шат шат гэрэлтэлт (banding) үүсэхгүйн тулд бага зэрэг шуугиан нэмнэ
+  a = max(0.0, a + (rand(gl_FragCoord.xy) - 0.5) / 160.0);
+  gl_FragColor = vec4(uColor, a * uOpacity);
+  #include <colorspace_fragment>
+}`;
+
+const glowGeometry = new THREE.PlaneGeometry(1, 1);
+
+export function makeGlow(color, { opacity = 1, additive = true } = {}) {
+  const material = new THREE.ShaderMaterial({
+    vertexShader: GLOW_VERT,
+    fragmentShader: GLOW_FRAG,
+    uniforms: {
+      uColor: { value: new THREE.Color(color) },
+      uOpacity: { value: opacity },
+    },
+    transparent: true,
+    depthWrite: false,
+    fog: false,
+    blending: additive ? THREE.AdditiveBlending : THREE.NormalBlending,
+  });
+  // бусад код material.opacity гэж өөрчлөхөд shader-ийн утга шинэчлэгдэнэ
+  Object.defineProperty(material, 'opacity', {
+    get: () => material.uniforms.uOpacity.value,
+    set: (v) => {
+      material.uniforms.uOpacity.value = v;
+    },
+    configurable: true,
+  });
+  const mesh = new THREE.Mesh(glowGeometry, material);
+  mesh.frustumCulled = false;
+  return mesh;
 }
 
 export function getHeartTexture() {
@@ -134,9 +173,7 @@ export class DustPuffs {
     this.items = [];
     this.cursor = 0;
     for (let i = 0; i < count; i++) {
-      const sprite = new THREE.Sprite(
-        new THREE.SpriteMaterial({ map: getGlowTexture(), color: '#e9e4ff', transparent: true, depthWrite: false, opacity: 0 })
-      );
+      const sprite = makeGlow('#e9e4ff', { opacity: 0, additive: false });
       sprite.visible = false;
       scene.add(sprite);
       this.items.push({ sprite, life: 0 });

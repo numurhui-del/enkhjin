@@ -68,6 +68,15 @@ function detour(start, path, obstacles) {
 }
 
 export async function playEnding(ctx) {
+  const { wait: waitFn } = ctx;
+  // нөхцөл биелтэл (эсвэл хамгийн ихдээ maxSeconds) хүлээнэ
+  const waitUntil = async (cond, maxSeconds) => {
+    let t = 0;
+    while (!cond() && t < maxSeconds) {
+      await waitFn(0.1);
+      t += 0.1;
+    }
+  };
   const { her, me, bench, table, cake, dialogue, story, colliders, rig, fireworks, fireworkText, hearts, tags, audio, ui, wait, config } = ctx;
 
   worldColliders = colliders || [];
@@ -111,15 +120,10 @@ export async function playEnding(ctx) {
     lookOffset: new THREE.Vector3(0, 0.6, 0),
     lerp: 1.8,
   });
-  const meToTable = me.walkPath(
-    detour(me.root.position, [meSpot], [
-      { pos: her.root.position.clone(), clearance: 1.45 },
-      { pos: T, clearance: 1.3 },
-    ]),
-    1.6
-  );
-  await wait(0.35);
+  // Энхжин түрүүлж явна, Мөнх-Очир зай гарсны дараа араас нь
   const herToTable = her.walkPath(detour(her.root.position, [herSpot], [{ pos: T, clearance: 1.3 }]), 1.6);
+  await waitUntil(() => her.root.position.distanceTo(me.root.position) > 1.9, 2.5);
+  const meToTable = me.walkPath(detour(me.root.position, [meSpot], [{ pos: T, clearance: 1.3 }]), 1.5);
   await Promise.all([meToTable, herToTable]);
   her.faceTowards(T.x, T.z);
   me.faceTowards(T.x, T.z);
@@ -167,30 +171,34 @@ export async function playEnding(ctx) {
     scaleForPortrait: true,
   });
 
-  // Сандал дээр хамт сууна
-  const meDone = me
-    .walkPath(
-      detour(me.root.position, plan.me.path, [
-        { pos: her.root.position.clone(), clearance: 1.45 },
-        { pos: T, clearance: 1.3 },
-      ]),
-      1.5
-    )
-    .then(() => me.sitDown(plan.me.seat, plan.facing, plan.seatTop));
-  await wait(1.1);
+  // Сандал дээр хамт сууна.
+  // Энхжин түрүүлж очоод цаад суудалд сууна. Мөнх-Очир зай гарсны дараа араас нь
+  // явж, сандлын үзүүрт хүлээгээд, Энхжинг суусны дараа л өөрөө сууна.
   const herDone = her
-    .walkPath(detour(her.root.position, plan.her.path, [{ pos: T, clearance: 1.3 }]), 1.5)
-    .then(() => her.sitDown(plan.her.seat, plan.facing, plan.seatTop));
-  await Promise.all([meDone, herDone]);
-  await wait(0.6);
+    .walkPath(detour(her.root.position, plan.pathTo(her.root.position, 'far'), [{ pos: T, clearance: 1.3 }]), 1.5)
+    .then(() => her.sitDown(plan.far.seat, plan.facing, plan.seatTop));
+  let herSeated = false;
+  herDone.then(() => {
+    herSeated = true;
+  });
+  await waitUntil(() => her.root.position.distanceTo(me.root.position) > 2.2, 3);
+  const mePath = detour(me.root.position, plan.pathTo(me.root.position, 'near'), [{ pos: T, clearance: 1.3 }]);
+  const meLast = mePath.pop();
+  if (mePath.length) await me.walkPath(mePath, 1.35);
+  me.faceTowards(her.root.position.x, her.root.position.z);
+  await waitUntil(() => herSeated, 12);
+  await wait(0.3);
+  await me.walkPath([meLast], 1.2);
+  await me.sitDown(plan.near.seat, plan.facing, plan.seatTop);
+  await wait(0.5);
 
   // Энхжин толгойгоо над руу бага зэрэг хазайлгана
   const toMe = new THREE.Vector3().subVectors(me.root.position, her.root.position);
   const herRight = new THREE.Vector3(Math.cos(plan.facing), 0, -Math.sin(plan.facing));
   const sideSign = Math.sign(toMe.dot(herRight)) || 1;
   // Энхжин Мөнх-Очир руу толгойгоороо налж ойрхон сууна
-  her.setLean(-0.24 * sideSign);
-  me.setLean(0.05 * sideSign);
+  her.setLean(-0.26 * sideSign);
+  me.setLean(0);
   await wait(0.8);
 
   // Camera аажмаар ард нь гараад дээшээ хөдөлнө. Тэнгэр рүү харах үед нэрийн шошго бүдгэрнэ

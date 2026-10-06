@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { getGlowTexture } from './effects.js';
+import { makeGlow } from './effects.js';
 
 // Төрсөн өдрийн бялуу: таваг, хоёр давхар, крем, жимс, лаа, дөл.
 export class Cake {
@@ -55,15 +55,7 @@ export class Cake {
     );
     flame.position.y = 0.505;
     flame.scale.set(1, 1.7, 1);
-    const glow = new THREE.Sprite(
-      new THREE.SpriteMaterial({
-        map: getGlowTexture(),
-        color: colors.flame,
-        transparent: true,
-        depthWrite: false,
-        blending: THREE.AdditiveBlending,
-      })
-    );
+    const glow = makeGlow(colors.flame);
     glow.position.y = 0.505;
     glow.scale.setScalar(0.35);
     group.add(candle, flame, glow);
@@ -71,9 +63,7 @@ export class Cake {
     // Лаа үлээхэд гарах утаа
     this.smoke = [];
     for (let i = 0; i < 7; i++) {
-      const s = new THREE.Sprite(
-        new THREE.SpriteMaterial({ map: getGlowTexture(), color: '#d8d4e6', transparent: true, opacity: 0, depthWrite: false })
-      );
+      const s = makeGlow('#d8d4e6', { opacity: 0, additive: false });
       s.visible = false;
       group.add(s);
       this.smoke.push({ sprite: s, delay: i * 0.18 });

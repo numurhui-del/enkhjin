@@ -9,7 +9,7 @@ import { CameraRig } from './camera.js';
 import { Fireworks } from './fireworks.js';
 import { FireworkText } from './fireworkText.js';
 import { AudioManager } from './audio.js';
-import { NameTag, HeartParticles, DustPuffs, getGlowTexture } from './effects.js';
+import { NameTag, HeartParticles, DustPuffs, makeGlow } from './effects.js';
 import { easeInOutCubic } from './utils.js';
 import { UI } from './ui.js';
 import { playEnding } from './ending.js';
@@ -131,12 +131,12 @@ function separateCharacters(a, b) {
   pb.x += nx * push * wb;
   pb.z += nz * push * wb;
   if (aMoving) {
-    pa.x -= nz * (push * 1.2 + 0.015);
-    pa.z += nx * (push * 1.2 + 0.015);
+    pa.x -= nz * push * 0.35;
+    pa.z += nx * push * 0.35;
   }
   if (bMoving) {
-    pb.x += nz * (push * 1.2 + 0.015);
-    pb.z -= nx * (push * 1.2 + 0.015);
+    pb.x += nz * push * 0.35;
+    pb.z -= nx * push * 0.35;
   }
 }
 
@@ -185,9 +185,7 @@ function triggerEnding() {
 // Link нээмэгц эхэлнэ: "Дэлхий үүсэж байна" бичиг бүдгэрч, camera тэнгэрээс
 // доош бууж, Энхжин гэрэл дунд төрж гарч ирнэ.
 let birth = null;
-const birthGlow = new THREE.Sprite(
-  new THREE.SpriteMaterial({ map: getGlowTexture(), color: '#ffd1e6', transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending })
-);
+const birthGlow = makeGlow('#ffd1e6', { opacity: 0 });
 birthGlow.visible = false;
 scene.add(birthGlow);
 

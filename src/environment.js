@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { mulberry32 } from './utils.js';
-import { getGlowTexture } from './effects.js';
+import { makeGlow } from './effects.js';
 
 // Шөнийн романтик цэцэрлэг: зүлэг, мод, цэцэг, чулуун зам,
 // модон сандал, гэрэл, сар, од, гэрэлт цох.
@@ -462,7 +462,6 @@ export function createEnvironment(scene, config) {
 
   // ---------------- Гудамжны гэрэл ----------------
   const lampSpots = [toV(mx - 1.8, mz + 0.6), benchToWorld(3.0, 0, -0.5), toV(tx + 1.6, tz - 1.0)];
-  const glowTex = getGlowTexture();
   const lamps = lampSpots.map((p) => {
     const g = new THREE.Group();
     const post = new THREE.Mesh(
@@ -481,15 +480,7 @@ export function createEnvironment(scene, config) {
     );
     cap.position.y = 2.45;
     cap.rotation.y = Math.PI / 4;
-    const glow = new THREE.Sprite(
-      new THREE.SpriteMaterial({
-        map: glowTex,
-        color: '#ffc27a',
-        transparent: true,
-        depthWrite: false,
-        blending: THREE.AdditiveBlending,
-      })
-    );
+    const glow = makeGlow('#ffc27a');
     glow.position.y = 2.22;
     glow.scale.setScalar(1.6);
     const light = new THREE.PointLight('#ffc27a', 9, 13, 2);
@@ -515,17 +506,7 @@ export function createEnvironment(scene, config) {
     new THREE.MeshBasicMaterial({ color: '#fff4d6', fog: false })
   );
   moon.position.copy(moonPos);
-  const moonGlow = new THREE.Sprite(
-    new THREE.SpriteMaterial({
-      map: glowTex,
-      color: '#c9d4ff',
-      transparent: true,
-      opacity: 0.55,
-      depthWrite: false,
-      fog: false,
-      blending: THREE.AdditiveBlending,
-    })
-  );
+  const moonGlow = makeGlow('#c9d4ff', { opacity: 0.5 });
   moonGlow.position.copy(moonPos);
   moonGlow.scale.setScalar(36);
   scene.add(moonGlow, moon);
@@ -611,6 +592,10 @@ export function createEnvironment(scene, config) {
     const farSeat = -side * 0.56;
     const nearSeat = side * 0.56;
     return {
+      // which: 'far' (үзүүрээс хол суудал) эсвэл 'near'
+      pathTo: (worldPos, which) => pathFor(worldToBench(worldPos), which === 'far' ? farSeat : nearSeat),
+      far: { seat: benchToWorld(farSeat, 0, SEAT_Z) },
+      near: { seat: benchToWorld(nearSeat, 0, SEAT_Z) },
       me: { path: pathFor(lm, farSeat), seat: benchToWorld(farSeat, 0, SEAT_Z) },
       her: { path: pathFor(lh, nearSeat), seat: benchToWorld(nearSeat, 0, SEAT_Z) },
       facing: br,
