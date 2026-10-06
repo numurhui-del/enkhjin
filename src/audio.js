@@ -35,8 +35,14 @@ export class AudioManager {
   // Утсан дээр дуу зөвхөн хэрэглэгч товч дарсны дараа асна.
   // Тиймээс үүнийг "Эхлэх" товчны click дотор дуудна.
   unlock() {
+    // iPhone чимээгүй (silent) горимд байсан ч дуугарахаар тохируулна (iOS 17+)
+    try {
+      if (navigator.audioSession) navigator.audioSession.type = 'playback';
+    } catch (err) {
+      // дэмжихгүй browser
+    }
     if (this.ctx) {
-      this.ctx.resume();
+      if (this.ctx.state !== 'running') this.ctx.resume();
       return;
     }
     const AC = window.AudioContext || window.webkitAudioContext;

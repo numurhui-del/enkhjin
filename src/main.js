@@ -37,7 +37,7 @@ const quality = {
   frames: 0,
 };
 renderer.setPixelRatio(quality.dpr);
-renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setSize(window.innerWidth, window.innerHeight, false);
 container.appendChild(renderer.domElement);
 
 renderer.domElement.addEventListener('webglcontextlost', (e) => {
@@ -255,7 +255,7 @@ async function runIntro() {
 }
 
 // Утсан дээр дуу зөвхөн хүрэлтийн дараа асдаг тул анхны хүрэлтээр асаана
-const audioEvents = ['pointerup', 'touchend', 'click', 'keydown'];
+const audioEvents = ['pointerdown', 'pointerup', 'touchstart', 'touchend', 'click', 'keydown'];
 function unlockAudio() {
   audio.unlock();
   audio.startMusic();
@@ -263,7 +263,9 @@ function unlockAudio() {
     for (const ev of audioEvents) window.removeEventListener(ev, unlockAudio);
   }
 }
-for (const ev of audioEvents) window.addEventListener(ev, unlockAudio, { passive: true });
+for (const ev of audioEvents) window.addEventListener(ev, unlockAudio, { passive: true, capture: true });
+// Зарим browser (жишээ нь компьютер дээрх Chrome) хүрэлтгүйгээр ч зөвшөөрдөг тул шууд оролдоно
+unlockAudio();
 
 ui.onMuteToggle((muted) => audio.setMuted(muted));
 
@@ -274,15 +276,18 @@ let lastW = 0;
 let lastH = 0;
 let lastDpr = 0;
 function resize() {
-  const w = window.innerWidth;
-  const h = window.innerHeight;
+  // Safari-ийн хаягийн мөр нуугдах, гарах үед ч бүтэн дэлгэцийг дүүргэхийн тулд
+  // window биш, дэлгэц дүүргэсэн #app хэсгийн бодит хэмжээг авна
+  const rect = container.getBoundingClientRect();
+  const w = Math.round(rect.width) || window.innerWidth;
+  const h = Math.round(rect.height) || window.innerHeight;
   if (w === 0 || h === 0) return;
   if (w === lastW && h === lastH && quality.dpr === lastDpr) return;
   lastW = w;
   lastH = h;
   lastDpr = quality.dpr;
   renderer.setPixelRatio(quality.dpr);
-  renderer.setSize(w, h);
+  renderer.setSize(w, h, false);
   camera.aspect = w / h;
   // Босоо утсан дээр өргөн харагдуулахын тулд fov-г бага зэрэг томруулна
   camera.fov = camera.aspect < 0.7 ? CONFIG.camera.fov + 6 : CONFIG.camera.fov;
