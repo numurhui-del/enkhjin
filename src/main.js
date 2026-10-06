@@ -118,8 +118,8 @@ function separateCharacters(a, b) {
   const nx = dx / d;
   const nz = dz / d;
   const push = MIN_GAP - d;
-  const aMoving = !!a.path;
-  const bMoving = !!b.path;
+  const aMoving = !!a.path || !!a.followCfg;
+  const bMoving = !!b.path || !!b.followCfg;
   let wa = 0.5;
   let wb = 0.5;
   if (aMoving && !bMoving) [wa, wb] = [1, 0];

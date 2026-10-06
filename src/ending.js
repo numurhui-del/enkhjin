@@ -113,9 +113,12 @@ export async function playEnding(ctx) {
 
   // 3. Хамт бялуутай ширээ рүү алхана
   const T = table.position;
-  let herSpot = T.clone().add(new THREE.Vector3(-0.72, 0, 1.25));
-  let meSpot = T.clone().add(new THREE.Vector3(0.72, 0, 1.25));
-  if (hp.x > mp.x) [herSpot, meSpot] = [meSpot, herSpot];
+  // Энхжин ширээний цаад тал руу, Мөнх-Очир ойрын тал руу очно.
+  // Ингэснээр Мөнх-Очир түүний урдуур гарах шаардлагагүй.
+  const spotA = T.clone().add(new THREE.Vector3(-0.72, 0, 1.25));
+  const spotB = T.clone().add(new THREE.Vector3(0.72, 0, 1.25));
+  const herSpot = spotA.distanceTo(hp) > spotB.distanceTo(hp) ? spotA : spotB;
+  const meSpot = herSpot === spotA ? spotB : spotA;
   const walkMid = new THREE.Vector3();
   rig.follow(() => walkMid.copy(her.root.position).add(me.root.position).multiplyScalar(0.5), {
     offset: new THREE.Vector3(1.3, 2.8, 5.6),
@@ -124,11 +127,12 @@ export async function playEnding(ctx) {
     // хоёр дүр хол байх тусам camera холдож, хоёуланг нь багтаана
     extraScale: () => 1 + her.root.position.distanceTo(me.root.position) * 0.12,
   });
-  // Энхжин түрүүлж явна, Мөнх-Очир зай гарсны дараа араас нь
-  const herToTable = her.walkPath(detour(her.root.position, [herSpot], [{ pos: T, clearance: 1.3 }]), 1.6);
-  await waitUntil(() => her.root.position.distanceTo(me.root.position) > 1.9, 2.5);
-  const meToTable = me.walkPath(detour(me.root.position, [meSpot], [{ pos: T, clearance: 1.3 }]), 1.5);
-  await Promise.all([meToTable, herToTable]);
+  // Энхжин түрүүлж явна, Мөнх-Очир түүний мөрийг даган ардаас нь явна
+  const herToTable = her.walkPath(detour(her.root.position, [herSpot], [{ pos: T, clearance: 1.3 }]), 1.5);
+  me.followLeader(her, 1.6, 1.8);
+  await herToTable;
+  me.stopFollow();
+  await me.walkPath(detour(me.root.position, [meSpot], [{ pos: T, clearance: 1.3 }, { pos: her.root.position.clone(), clearance: 1.4 }]), 1.4);
   her.faceTowards(T.x, T.z);
   me.faceTowards(T.x, T.z);
 
@@ -186,20 +190,12 @@ export async function playEnding(ctx) {
   herDone.then(() => {
     herSeated = true;
   });
-  await waitUntil(() => her.root.position.distanceTo(me.root.position) > 1.6, 3);
-
-  // Энхжингийн замын цэгүүдийг дагаад, сүүлчийнх нь оронд ойрын суудлын урд зогсоно
+  // Мөнх-Очир Энхжингийн мөрийг даган ардаас нь явна
+  me.followLeader(her, 1.6, 1.8);
+  await waitUntil(() => herSeated, 15);
+  me.stopFollow();
   const nearFront = plan.pathTo(me.root.position, 'near').pop();
-  const followPath = herPath.slice(0, -1).map((p) => p.clone());
-  followPath.push(nearFront);
-  const meWalk = me.walkPath(followPath, 1.45);
-  // Энхжингээс 1.5 нэгжээс ойртвол түр зогсоно (урд нь гарахгүй)
-  while (me.path) {
-    me.paused = !herSeated && me.root.position.distanceTo(her.root.position) < 1.5;
-    await wait(0.05);
-  }
-  me.paused = false;
-  await meWalk;
+  await me.walkPath(detour(me.root.position, [nearFront], [{ pos: T, clearance: 1.3 }]), 1.3);
   me.faceTowards(her.root.position.x, her.root.position.z);
   await waitUntil(() => herSeated, 12);
   await wait(0.3);
@@ -219,7 +215,7 @@ export async function playEnding(ctx) {
   for (const tag of tags) tag.hide();
   const back = Math.max(1, 0.7 / cam.aspect);
   // дүрүүдийн дундуур биш, хажуугаар нь тойрч ард нь гарна
-  await rig.animateTo(bench.toWorld(-5.2 * back, 2.6, -1.4 * back), bench.toWorld(0, 0.9, 0), 1.7, easeInOutSine);
+  await rig.animateTo(bench.toWorld(-4.0 * back, 3.2, -2.6 * back), bench.toWorld(0, 0.9, 0), 1.7, easeInOutSine);
   await rig.animateTo(bench.toWorld(0, 1.45 * back, -4.6 * back), bench.toWorld(0, 1.0, 2.5), 2.0, easeInOutSine);
   await wait(0.8);
 

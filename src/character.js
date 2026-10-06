@@ -322,6 +322,63 @@ export class Character {
     });
   }
 
+  // Өөр дүрийн (leader) алхсан мөрийг яг даган, ардаас нь gap зайтай явна.
+  // Мөрөөр нь явдаг тул урдуур нь гарч, мөргөх боломжгүй.
+  followLeader(leader, gap = 1.6, speed = 1.8) {
+    const me = this.root.position;
+    const lp = leader.root.position;
+    this.followCfg = { leader, gap, speed, trail: [{ x: me.x, z: me.z }, { x: lp.x, z: lp.z }] };
+  }
+
+  stopFollow() {
+    this.followCfg = null;
+    this.state = 'idle';
+    this.moveAmount = 0;
+  }
+
+  _updateFollow(dt) {
+    const f = this.followCfg;
+    const lp = f.leader.root.position;
+    const trail = f.trail;
+    const last = trail[trail.length - 1];
+    if ((last.x - lp.x) ** 2 + (last.z - lp.z) ** 2 > 0.0025) trail.push({ x: lp.x, z: lp.z });
+
+    // мөрийн дагуу ардаас нь gap зайтай цэгийг олно
+    let remaining = f.gap;
+    let tx = lp.x;
+    let tz = lp.z;
+    for (let i = trail.length - 1; i > 0 && remaining > 0; i--) {
+      const a = trail[i];
+      const b = trail[i - 1];
+      const seg = Math.hypot(b.x - a.x, b.z - a.z);
+      if (seg >= remaining) {
+        const k = remaining / seg;
+        tx = a.x + (b.x - a.x) * k;
+        tz = a.z + (b.z - a.z) * k;
+        remaining = 0;
+      } else {
+        remaining -= seg;
+        tx = b.x;
+        tz = b.z;
+      }
+    }
+
+    const pos = this.root.position;
+    const d = Math.hypot(tx - pos.x, tz - pos.z);
+    const toLeader = Math.hypot(lp.x - pos.x, lp.z - pos.z);
+    if (remaining === 0 && d > 0.06 && toLeader > f.gap * 0.9) {
+      const step = Math.min(d, f.speed * dt);
+      pos.x += ((tx - pos.x) / d) * step;
+      pos.z += ((tz - pos.z) / d) * step;
+      this.targetFacing = Math.atan2(tx - pos.x, tz - pos.z);
+      this.state = 'walk';
+      this.moveAmount = Math.min(1, f.speed / 3);
+    } else {
+      this.state = 'idle';
+      this.moveAmount = 0;
+    }
+  }
+
   // Сандал дээр суух: worldPos руу гулсаж очоод доошоо сууна
   sitDown(worldPos, facing, seatTop, duration = 0.8) {
     this.targetFacing = facing;
@@ -419,6 +476,7 @@ export class Character {
     const t = this.time;
 
     this._updatePath(dt);
+    if (this.followCfg && !this.path) this._updateFollow(dt);
     this._updateSlide(dt);
     this.root.rotation.y = dampAngle(this.root.rotation.y, this.targetFacing, 10, dt);
 
