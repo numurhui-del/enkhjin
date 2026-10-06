@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="mn">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#0b1026">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <link rel="icon" href="data:,">
+  <title>Энхжинд</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Comfortaa:wght@500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js"
+      }
+    }
+  </script>
+</head>
+<body>
+  <div id="app"></div>
+
+  <div id="flash" class="flash"></div>
+
+  <div id="cinema-bars" class="cinema-bars"><div></div><div></div></div>
+
+  <div id="hint" class="hint hidden"></div>
+
+  <div id="joystick" class="joystick"><div class="joystick-knob"></div></div>
+
+  <button id="mute-btn" class="icon-btn hidden" aria-label="Дуу"></button>
+
+  <button id="replay-btn" class="replay-btn hidden"></button>
+
+  <div id="touch-guide" class="touch-guide hidden" aria-hidden="true">
+    <div class="touch-track"></div>
+    <div class="touch-dot"></div>
+  </div>
+
+  <div id="dialogue-choices" class="dialogue-choices hidden"></div>
+  <div id="dialogue" class="dialogue hidden">
+    <div id="dialogue-speaker" class="dialogue-speaker"></div>
+    <div id="dialogue-text" class="dialogue-text"></div>
+    <div class="dialogue-next" aria-hidden="true"></div>
+  </div>
+  <button id="dialogue-action" class="dialogue-action hidden"></button>
+
+  <div id="intro" class="intro">
+    <div class="intro-glow"></div>
+    <div id="intro-text" class="intro-text">Дэлхий үүсэж байна</div>
+    <div class="intro-dots"><span></span><span></span><span></span></div>
+  </div>
+
+  <div id="error-screen" class="start-screen error-screen hidden">
+    <div class="start-card">
+      <p id="error-text"></p>
+      <button id="reload-btn" class="start-btn hidden"></button>
+    </div>
+  </div>
+
+  <noscript>Энэ тоглоомыг үзэхийн тулд JavaScript асаалттай байх хэрэгтэй.</noscript>
+  <script type="module" src="src/main.js"></script>
+  <script>
+    // Интернэт удаан эсвэл browser хуучин бол 20 секундын дараа тайлбар харуулна
+    setTimeout(function () {
+      if (window.__gameReady) return;
+      var text = document.getElementById('intro-text');
+      if (text) text.textContent = 'Удаан ачааллаж байна. Интернэтээ шалгаад хуудсаа дахин нээгээрэй.';
+    }, 20000);
+  </script>
+</body>
+</html>
