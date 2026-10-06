@@ -19,14 +19,10 @@
 html,
 body {
   margin: 0;
-  min-height: 100%;
-  min-height: 100dvh;
   width: 100%;
   height: 100%;
   overflow: hidden;
-  position: fixed;
-  inset: 0;
-  background: var(--night);
+  background: #121844;
   color: var(--cream);
   font-family: 'Comfortaa', system-ui, -apple-system, 'Segoe UI', sans-serif;
   touch-action: none;
@@ -41,11 +37,14 @@ button {
   touch-action: manipulation;
 }
 
+/* Safari дээр доорх хайлтын мөр, дээрх хаягийн мөрийн ард хүртэл бүтэн дүүргэнэ */
 #app {
   position: fixed;
-  inset: 0;
-  width: 100%;
-  height: 100%;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  height: 100lvh;
   background: #121844;
 }
 

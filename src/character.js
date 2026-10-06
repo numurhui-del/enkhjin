@@ -344,6 +344,14 @@ export class Character {
 
   _updatePath(dt) {
     if (!this.path) return;
+    // Түр зогсох (жишээ нь урдаа явж буй хүнээ гүйцэхгүйн тулд)
+    if (this.paused) {
+      this.state = 'idle';
+      this.moveAmount = 0;
+      this._progressTime = 0;
+      this._bestDist = Infinity;
+      return;
+    }
     const target = this.path[0];
     const pos = this.root.position;
     const dx = target.x - pos.x;

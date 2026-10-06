@@ -172,23 +172,32 @@ export async function playEnding(ctx) {
   });
 
   // Сандал дээр хамт сууна.
-  // Энхжин түрүүлж очоод цаад суудалд сууна. Мөнх-Очир зай гарсны дараа араас нь
-  // явж, сандлын үзүүрт хүлээгээд, Энхжинг суусны дараа л өөрөө сууна.
-  const herDone = her
-    .walkPath(detour(her.root.position, plan.pathTo(her.root.position, 'far'), [{ pos: T, clearance: 1.3 }]), 1.5)
-    .then(() => her.sitDown(plan.far.seat, plan.facing, plan.seatTop));
+  // Энхжин түрүүлж очоод цаад суудалд сууна. Мөнх-Очир яг түүний араас, ижил
+  // замаар дагаж явна. Хэт ойртвол түр зогсож хүлээнэ. Энхжинг суусны дараа л
+  // хажууд нь сууна.
+  const herPath = detour(her.root.position, plan.pathTo(her.root.position, 'far'), [{ pos: T, clearance: 1.3 }]);
+  const herDone = her.walkPath(herPath, 1.5).then(() => her.sitDown(plan.far.seat, plan.facing, plan.seatTop));
   let herSeated = false;
   herDone.then(() => {
     herSeated = true;
   });
-  await waitUntil(() => her.root.position.distanceTo(me.root.position) > 2.2, 3);
-  const mePath = detour(me.root.position, plan.pathTo(me.root.position, 'near'), [{ pos: T, clearance: 1.3 }]);
-  const meLast = mePath.pop();
-  if (mePath.length) await me.walkPath(mePath, 1.35);
+  await waitUntil(() => her.root.position.distanceTo(me.root.position) > 1.6, 3);
+
+  // Энхжингийн замын цэгүүдийг дагаад, сүүлчийнх нь оронд ойрын суудлын урд зогсоно
+  const nearFront = plan.pathTo(me.root.position, 'near').pop();
+  const followPath = herPath.slice(0, -1).map((p) => p.clone());
+  followPath.push(nearFront);
+  const meWalk = me.walkPath(followPath, 1.45);
+  // Энхжингээс 1.5 нэгжээс ойртвол түр зогсоно (урд нь гарахгүй)
+  while (me.path) {
+    me.paused = !herSeated && me.root.position.distanceTo(her.root.position) < 1.5;
+    await wait(0.05);
+  }
+  me.paused = false;
+  await meWalk;
   me.faceTowards(her.root.position.x, her.root.position.z);
   await waitUntil(() => herSeated, 12);
   await wait(0.3);
-  await me.walkPath([meLast], 1.2);
   await me.sitDown(plan.near.seat, plan.facing, plan.seatTop);
   await wait(0.5);
 
