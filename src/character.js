@@ -112,11 +112,6 @@ export class Character {
       const pants = new THREE.Mesh(new THREE.CylinderGeometry(0.31, 0.3, 0.2, 16), bottom);
       pants.position.y = 0.42;
       this.body.add(pants);
-      // цамцны жижиг тэмдэг
-      const badge = new THREE.Mesh(new THREE.SphereGeometry(0.05, 10, 8), white);
-      badge.position.set(0.12, 0.74, 0.3);
-      badge.scale.set(1, 1, 0.4);
-      this.body.add(badge);
     }
 
     // ----- Гар -----
@@ -216,16 +211,21 @@ export class Character {
     cap.rotation.x = -0.38;
     head.add(cap);
 
-    // Хөмсөг дээгүүрх үс
-    const bangGeo = new THREE.SphereGeometry(0.16, 12, 10);
-    for (const [x, y, z] of [[-0.2, 0.3, 0.4], [0, 0.34, 0.42], [0.2, 0.3, 0.4]]) {
-      const b = new THREE.Mesh(bangGeo, hair);
-      b.position.set(x, y, z);
-      b.scale.set(1, 0.6, 0.6);
-      head.add(b);
-    }
-
-    if (style === 'long') {
+    if (style === 'bob') {
+      // Сул тавьсан, хүзүү хүртэлх урттай үс
+      const back = new THREE.Mesh(new THREE.SphereGeometry(0.5, 24, 18), hair);
+      back.position.set(0, -0.1, -0.13);
+      back.scale.set(1.09, 1.06, 0.74);
+      head.add(back);
+      const sideGeo = new THREE.SphereGeometry(0.2, 14, 12);
+      for (const s of [1, -1]) {
+        const side = new THREE.Mesh(sideGeo, hair);
+        side.position.set(0.44 * s, -0.16, 0.02);
+        side.scale.set(0.7, 1.55, 1.05);
+        side.rotation.z = 0.12 * s;
+        head.add(side);
+      }
+    } else if (style === 'long') {
       const back = new THREE.Mesh(new THREE.SphereGeometry(0.5, 20, 16), hair);
       back.position.set(0, -0.22, -0.2);
       back.scale.set(1.08, 1.3, 0.62);

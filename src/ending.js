@@ -98,10 +98,12 @@ export async function playEnding(ctx) {
   // Босоо утсан дээр хоёуланг нь багтаахын тулд camera-г холдуулна
   const cam = rig.camera;
   const halfWidth = Math.tan((cam.fov * Math.PI) / 360) * cam.aspect;
-  const frameDist = Math.max(3.6, 2.0 / halfWidth);
+  const halfHeight = Math.tan((cam.fov * Math.PI) / 360);
+  // Хоёр дүр, толгой дээрх нэр бүгд өргөн болон өндрөөрөө дэлгэцэнд багтана
+  const frameDist = Math.max(3.6, 2.0 / halfWidth, 2.0 / halfHeight);
   rig.animateTo(
     mid.clone().addScaledVector(side, frameDist).add(new THREE.Vector3(0, 1.4, 0)),
-    mid.clone().add(new THREE.Vector3(0, 0.45, 0)),
+    mid.clone().add(new THREE.Vector3(0, 0.8, 0)),
     1.6
   );
   await wait(1.2);
@@ -116,9 +118,11 @@ export async function playEnding(ctx) {
   if (hp.x > mp.x) [herSpot, meSpot] = [meSpot, herSpot];
   const walkMid = new THREE.Vector3();
   rig.follow(() => walkMid.copy(her.root.position).add(me.root.position).multiplyScalar(0.5), {
-    offset: new THREE.Vector3(1.2, 2.4, 4.6),
-    lookOffset: new THREE.Vector3(0, 0.6, 0),
+    offset: new THREE.Vector3(1.3, 2.8, 5.6),
+    lookOffset: new THREE.Vector3(0, 0.8, 0),
     lerp: 1.8,
+    // хоёр дүр хол байх тусам camera холдож, хоёуланг нь багтаана
+    extraScale: () => 1 + her.root.position.distanceTo(me.root.position) * 0.12,
   });
   // Энхжин түрүүлж явна, Мөнх-Очир зай гарсны дараа араас нь
   const herToTable = her.walkPath(detour(her.root.position, [herSpot], [{ pos: T, clearance: 1.3 }]), 1.6);
@@ -129,10 +133,10 @@ export async function playEnding(ctx) {
   me.faceTowards(T.x, T.z);
 
   // Ширээний нөгөө талаас хоёуланг нь харуулна
-  const tableDist = Math.max(3.2, 1.5 / (Math.tan((cam.fov * Math.PI) / 360) * cam.aspect));
+  const tableDist = Math.max(3.2, 1.6 / (Math.tan((cam.fov * Math.PI) / 360) * cam.aspect), 2.0 / Math.tan((cam.fov * Math.PI) / 360));
   await rig.animateTo(
     T.clone().add(new THREE.Vector3(0, 1.55, -tableDist)),
-    T.clone().add(new THREE.Vector3(0, 0.55, 0.7)),
+    T.clone().add(new THREE.Vector3(0, 0.8, 0.7)),
     1.8
   );
   await dialogue.run(story.table);
@@ -140,7 +144,7 @@ export async function playEnding(ctx) {
   // 4. Энхжин нүдээ аниад хүслээ шивнэнэ, дараа нь лаагаа үлээнэ
   her.setEyesClosed(true);
   dialogue.show('narrator', story.wish.text);
-  await wait(0.8);
+  await wait(5);
   await dialogue.action(story.wish.button);
   dialogue.hide();
   cake.blowOut();
@@ -169,6 +173,7 @@ export async function playEnding(ctx) {
     lookOffset: new THREE.Vector3(0, 0.8, 0),
     lerp: 1.6,
     scaleForPortrait: true,
+    extraScale: () => 1.15 + her.root.position.distanceTo(me.root.position) * 0.12,
   });
 
   // Сандал дээр хамт сууна.
@@ -214,7 +219,7 @@ export async function playEnding(ctx) {
   for (const tag of tags) tag.hide();
   const back = Math.max(1, 0.7 / cam.aspect);
   // дүрүүдийн дундуур биш, хажуугаар нь тойрч ард нь гарна
-  await rig.animateTo(bench.toWorld(-3.4 * back, 2.0, -0.6 * back), bench.toWorld(0, 0.9, 0), 1.7, easeInOutSine);
+  await rig.animateTo(bench.toWorld(-5.2 * back, 2.6, -1.4 * back), bench.toWorld(0, 0.9, 0), 1.7, easeInOutSine);
   await rig.animateTo(bench.toWorld(0, 1.45 * back, -4.6 * back), bench.toWorld(0, 1.0, 2.5), 2.0, easeInOutSine);
   await wait(0.8);
 

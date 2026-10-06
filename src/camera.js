@@ -22,8 +22,9 @@ export class CameraRig {
     this._look = new THREE.Vector3();
   }
 
-  follow(getTarget, { offset, lookOffset, lerp, scaleForPortrait = true } = {}) {
+  follow(getTarget, { offset, lookOffset, lerp, scaleForPortrait = true, extraScale = null } = {}) {
     this.mode = 'follow';
+    this.extraScale = extraScale;
     this.getTarget = getTarget;
     if (offset) this.offset.copy(offset);
     if (lookOffset) this.lookOffset.copy(lookOffset);
@@ -71,7 +72,8 @@ export class CameraRig {
   update(dt) {
     if (this.mode === 'follow') {
       const target = this.getTarget();
-      this._desired.copy(target).addScaledVector(this.offset, this._distanceScale());
+      const extra = this.extraScale ? this.extraScale() : 1;
+      this._desired.copy(target).addScaledVector(this.offset, this._distanceScale() * extra);
       this._look.copy(target).add(this.lookOffset);
       const k = 1 - Math.exp(-this.lerp * dt);
       this.camera.position.lerp(this._desired, k);

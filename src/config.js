@@ -80,15 +80,15 @@ export const CONFIG = {
 
   // ---------------------------------------------------------
   //  CHARACTER-ИЙН ХАРАГДАХ БАЙДАЛ
-  //  hairStyle: 'pigtails' | 'long' | 'bun' | 'short'
+  //  hairStyle: 'bob' | 'pigtails' | 'long' | 'bun' | 'short'
   //  outfit:    'dress' | 'shirt'
   //  accessory: 'bow' | 'none'
   // ---------------------------------------------------------
   characters: {
     enkhjin: {
       skin: '#ffdcc8',
-      hair: '#3a2018',
-      hairStyle: 'pigtails',
+      hair: '#b3302b',
+      hairStyle: 'bob',
       outfit: 'dress',
       top: '#ff8fb8',      // цамц / даашинзны дээд хэсэг
       bottom: '#ffc2d8',   // банзал эсвэл өмд
