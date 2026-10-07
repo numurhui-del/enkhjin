@@ -212,19 +212,25 @@ export class Character {
     head.add(cap);
 
     if (style === 'bob') {
-      // Сул тавьсан, хүзүү хүртэлх урттай үс
-      const back = new THREE.Mesh(new THREE.SphereGeometry(0.5, 24, 18), hair);
-      back.position.set(0, -0.1, -0.13);
-      back.scale.set(1.09, 1.06, 0.74);
-      head.add(back);
-      const sideGeo = new THREE.SphereGeometry(0.2, 14, 12);
-      for (const s of [1, -1]) {
-        const side = new THREE.Mesh(sideGeo, hair);
-        side.position.set(0.44 * s, -0.16, 0.02);
-        side.scale.set(0.7, 1.55, 1.05);
-        side.rotation.z = 0.12 * s;
-        head.add(side);
-      }
+      // Мөр хүртэл жигд шулуун унжсан үс: нүүрний хэсэг нээлттэй, ар болон
+      // хоёр хажуугаар нь доош тэгш унжина, үзүүр нь шулуун тэгш тайрсан.
+      const straight = hair.clone();
+      straight.side = THREE.DoubleSide;
+      const open = 0.95; // нүүрний өмнө үлдэх нээлттэй хэсэг (радиан)
+      const curtain = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.535, 0.56, 0.66, 40, 1, true, open, Math.PI * 2 - open * 2),
+        straight
+      );
+      curtain.position.y = -0.27;
+      head.add(curtain);
+      // доод үзүүрийн тэгш ирмэг
+      const tip = new THREE.Mesh(
+        new THREE.RingGeometry(0.5, 0.56, 40, 1, Math.PI / 2 + open, Math.PI * 2 - open * 2),
+        straight
+      );
+      tip.rotation.x = Math.PI / 2;
+      tip.position.y = -0.6;
+      head.add(tip);
     } else if (style === 'long') {
       const back = new THREE.Mesh(new THREE.SphereGeometry(0.5, 20, 16), hair);
       back.position.set(0, -0.22, -0.2);
