@@ -2,22 +2,41 @@
 //
 // config.audio.files дотор заасан файл байвал түүнийг тоглуулна.
 // Файл байхгүй бол browser дотор шууд синтезээр үүсгэсэн дуу
-// (хөгжмийн хайрцаг аялгуу, салютын тэсрэлт гэх мэт) тоглоно.
+// (уянгалаг романтик хөгжим, салютын тэсрэлт гэх мэт) тоглоно.
 // Ингэснээр copyright асуудалгүй, файлгүй үед ч дуутай ажиллана.
 
+// Уянгалаг романтик баллад (өөрийн зохиосон). 16 хэмжүүр, нэг хэмжүүрт 8 найм дахь нот.
+// Аккорд бүр: [басс, ...дунд хоолой]
+const C = [36, 60, 64, 67, 71];   // Cmaj7
+const AM = [33, 57, 60, 64, 67];  // Am7
+const F = [29, 57, 60, 64, 65];   // Fmaj7
+const G = [31, 55, 59, 62, 64];   // G6
+const EM = [28, 55, 59, 62, 64];  // Em7
+const DM = [26, 53, 57, 60, 62];  // Dm7
+const PROGRESSION = [C, AM, F, G, EM, AM, DM, G, C, AM, F, G, EM, AM, DM, C];
+
+// Гол аялгуу: [эхлэх найм дахь, midi нот, урт (найм дахиар)]
 const MELODY = [
-  76, null, 79, null, 77, 76, 74, null,
-  72, null, 76, null, 74, 72, 71, null,
-  69, null, 72, null, 77, null, 76, 74,
-  74, null, null, 71, 72, null, null, null,
+  [0, 76, 3], [3, 74, 1], [4, 76, 2], [6, 79, 2],
+  [8, 72, 4], [12, 76, 2], [14, 74, 2],
+  [16, 72, 3], [19, 69, 1], [20, 72, 2], [22, 77, 2],
+  [24, 76, 4], [28, 74, 4],
+  [32, 71, 3], [35, 74, 1], [36, 76, 2], [38, 79, 2],
+  [40, 81, 4], [44, 79, 2], [46, 76, 2],
+  [48, 77, 3], [51, 76, 1], [52, 74, 2], [54, 72, 2],
+  [56, 74, 6],
+  [64, 79, 3], [67, 76, 1], [68, 79, 2], [70, 84, 2],
+  [72, 83, 4], [76, 81, 2], [78, 79, 2],
+  [80, 81, 3], [83, 79, 1], [84, 77, 2], [86, 76, 2],
+  [88, 74, 6],
+  [96, 76, 2], [98, 79, 2], [100, 83, 2], [102, 81, 2],
+  [104, 81, 3], [107, 79, 1], [108, 76, 4],
+  [112, 77, 2], [114, 76, 2], [116, 74, 2], [118, 72, 2],
+  [120, 72, 8],
 ];
-const CHORDS = [
-  [60, 64, 67],
-  [57, 60, 64],
-  [53, 57, 60],
-  [55, 59, 62],
-];
-const ARP = [0, 1, 2, 3, 2, 1, 2, 1];
+const MELODY_AT = new Map(MELODY.map(([at, note, len]) => [at, [note, len]]));
+const ARP = [1, 2, 3, 4, 3, 2, 4, 3];
+const LOOP = PROGRESSION.length * 8;
 
 const midiToFreq = (m) => 440 * Math.pow(2, (m - 69) / 12);
 
@@ -73,7 +92,7 @@ export class AudioManager {
     reverbOut.gain.value = 0.9;
     this.reverb.connect(reverbOut).connect(this.master);
     const musicSend = ctx.createGain();
-    musicSend.gain.value = 0.25;
+    musicSend.gain.value = 0.5;
     this.musicGain.connect(musicSend).connect(this.reverb);
 
     // iOS Safari дээр context-ийг асаахын тулд чимээгүй жижиг дуу тоглуулна
@@ -239,62 +258,136 @@ export class AudioManager {
 
   _startSynthMusic() {
     const ctx = this.ctx;
-    const eighth = 60 / 74 / 2;
+    const eighth = 60 / 64 / 2; // 64 bpm, удаан уянгалаг
     let step = 0;
-    let next = ctx.currentTime + 0.15;
+    let next = ctx.currentTime + 0.2;
     this._musicTimer = setInterval(() => {
       if (ctx.state !== 'running') return;
       if (next < ctx.currentTime - 0.5) next = ctx.currentTime + 0.05;
-      while (next < ctx.currentTime + 0.3) {
-        const bar = Math.floor(step / 8) % 4;
-        const chord = CHORDS[bar];
-        const pos = step % 8;
-        const a = ARP[pos];
-        const arpNote = a === 3 ? chord[0] + 12 : chord[a];
-        this._bell(arpNote, next, 0.05, 1.1);
-        const m = MELODY[step % MELODY.length];
-        if (m !== null) this._bell(m, next, 0.075, 1.6);
-        if (pos === 0) this._pad(chord[0] - 12, next, 0.07, eighth * 8);
+      while (next < ctx.currentTime + 0.4) {
+        const i = step % LOOP;
+        const chord = PROGRESSION[Math.floor(i / 8)];
+        const pos = i % 8;
+        // хэмжүүрийн эхэнд: басс ба зөөлөн дулаан аккорд
+        if (pos === 0) {
+          this._bass(chord[0], next, 0.11, eighth * 8);
+          this._padChord(chord.slice(1), next, eighth * 8.5, 0.022);
+        }
+        // төгөлдөр хуур шиг задгай аккорд (бага зэрэг хүний мэдрэмжтэй хэмнэл)
+        const human = (Math.random() - 0.5) * 0.02;
+        const velocity = pos % 4 === 0 ? 0.055 : 0.035 + Math.random() * 0.01;
+        this._piano(chord[ARP[pos]], next + human, velocity, 2.2);
+        // гол аялгуу
+        const m = MELODY_AT.get(i);
+        if (m) this._voice(m[0], next, 0.07, m[1] * eighth);
         step++;
         next += eighth;
       }
-    }, 60);
+    }, 80);
   }
 
-  _bell(midi, time, vol, dur) {
+  // Төгөлдөр хуур шиг: хурдан цохилт, аажмаар унтрах
+  _piano(midi, time, vol, dur) {
     const ctx = this.ctx;
     const f = midiToFreq(midi);
     const g = ctx.createGain();
     g.gain.setValueAtTime(0.0001, time);
-    g.gain.exponentialRampToValueAtTime(vol, time + 0.01);
+    g.gain.exponentialRampToValueAtTime(vol, time + 0.008);
+    g.gain.exponentialRampToValueAtTime(vol * 0.35, time + 0.4);
     g.gain.exponentialRampToValueAtTime(0.0001, time + dur);
-    g.connect(this.musicGain);
-    const o1 = ctx.createOscillator();
-    o1.type = 'sine';
-    o1.frequency.value = f;
-    const o2 = ctx.createOscillator();
-    o2.type = 'sine';
-    o2.frequency.value = f * 3;
-    const g2 = ctx.createGain();
-    g2.gain.value = 0.12;
-    o1.connect(g);
-    o2.connect(g2).connect(g);
-    o1.start(time);
-    o2.start(time);
-    o1.stop(time + dur + 0.05);
-    o2.stop(time + dur + 0.05);
+    const lp = ctx.createBiquadFilter();
+    lp.type = 'lowpass';
+    lp.frequency.setValueAtTime(3200, time);
+    lp.frequency.exponentialRampToValueAtTime(900, time + dur);
+    lp.connect(g).connect(this.musicGain);
+    for (const [mult, amp, type] of [[1, 1, 'triangle'], [2, 0.25, 'sine'], [3, 0.08, 'sine']]) {
+      const o = ctx.createOscillator();
+      o.type = type;
+      o.frequency.value = f * mult;
+      const og = ctx.createGain();
+      og.gain.value = amp;
+      o.connect(og).connect(lp);
+      o.start(time);
+      o.stop(time + dur + 0.05);
+    }
   }
 
-  _pad(midi, time, vol, dur) {
+  // Дуулж буй мэт уянгалаг хоолой: зөөлөн эхлэл, бага зэрэг чичиргээ
+  _voice(midi, time, vol, dur) {
+    const ctx = this.ctx;
+    const f = midiToFreq(midi);
+    const hold = Math.max(0.3, dur);
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0.0001, time);
+    g.gain.exponentialRampToValueAtTime(vol, time + 0.12);
+    g.gain.setValueAtTime(vol, time + hold * 0.7);
+    g.gain.exponentialRampToValueAtTime(0.0001, time + hold + 0.9);
+    const lp = ctx.createBiquadFilter();
+    lp.type = 'lowpass';
+    lp.frequency.value = 2400;
+    lp.connect(g).connect(this.musicGain);
+    const o = ctx.createOscillator();
+    o.type = 'sine';
+    o.frequency.value = f;
+    const o2 = ctx.createOscillator();
+    o2.type = 'triangle';
+    o2.frequency.value = f * 1.002;
+    const g2 = ctx.createGain();
+    g2.gain.value = 0.35;
+    const vib = ctx.createOscillator();
+    vib.frequency.value = 5.2;
+    const vibGain = ctx.createGain();
+    vibGain.gain.setValueAtTime(0, time);
+    vibGain.gain.linearRampToValueAtTime(f * 0.006, time + 0.5);
+    vib.connect(vibGain);
+    vibGain.connect(o.frequency);
+    vibGain.connect(o2.frequency);
+    o.connect(lp);
+    o2.connect(g2).connect(lp);
+    const end = time + hold + 1;
+    for (const osc of [o, o2, vib]) {
+      osc.start(time);
+      osc.stop(end);
+    }
+  }
+
+  // Дулаан, зөөлөн аккорд (аажмаар орж, аажмаар гарна)
+  _padChord(notes, time, dur, vol) {
     const ctx = this.ctx;
     const g = ctx.createGain();
     g.gain.setValueAtTime(0.0001, time);
-    g.gain.exponentialRampToValueAtTime(vol, time + 0.4);
+    g.gain.exponentialRampToValueAtTime(vol, time + 1.2);
+    g.gain.setValueAtTime(vol, time + dur - 0.8);
+    g.gain.exponentialRampToValueAtTime(0.0001, time + dur + 0.6);
+    const lp = ctx.createBiquadFilter();
+    lp.type = 'lowpass';
+    lp.frequency.value = 1100;
+    lp.connect(g).connect(this.musicGain);
+    for (const n of notes) {
+      for (const detune of [-6, 6]) {
+        const o = ctx.createOscillator();
+        o.type = 'sawtooth';
+        o.frequency.value = midiToFreq(n);
+        o.detune.value = detune;
+        o.connect(lp);
+        o.start(time);
+        o.stop(time + dur + 0.7);
+      }
+    }
+  }
+
+  // Зөөлөн басс
+  _bass(midi, time, vol, dur) {
+    const ctx = this.ctx;
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0.0001, time);
+    g.gain.exponentialRampToValueAtTime(vol, time + 0.05);
+    g.gain.exponentialRampToValueAtTime(vol * 0.4, time + 1.2);
     g.gain.exponentialRampToValueAtTime(0.0001, time + dur);
     g.connect(this.musicGain);
     const o = ctx.createOscillator();
-    o.type = 'triangle';
-    o.frequency.value = midiToFreq(midi);
+    o.type = 'sine';
+    o.frequency.value = midiToFreq(midi + 12);
     o.connect(g);
     o.start(time);
     o.stop(time + dur + 0.05);
